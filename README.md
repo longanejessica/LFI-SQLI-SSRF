@@ -460,3 +460,182 @@ http://localhost/web-lab/sqli.php?id=1' OR '1'='1
 - Never trust GET/POST data
 
 ---
+# 🌐 Labo Web Vulnérable – Étape 3 : SSRF (Server-Side Request Forgery)
+
+👉 [Lire en français](#-partie-1--en-français) | [Read in English](#-part-2--in-english)
+
+---
+
+## 🇫🇷 Partie 1 – En français
+
+### 📖 Une faille invisible : quand le serveur devient ton messager
+
+Imagine que tu veux entrer dans un bâtiment sécurisé. Impossible. Mais tu trouves un facteur (le serveur) à qui tu peux dire : "Va livrer ce message à l’intérieur." Et il le fait. Sans poser de questions.
+
+C’est ça, une **SSRF** (Server-Side Request Forgery). Tu ne peux pas accéder directement à certaines ressources, mais tu demandes **au serveur** d’y aller **à ta place**.
+
+---
+
+## 🔧 Pourquoi j'ai testé en local (127.0.0.1)
+
+Au départ, je voulais tester avec un site externe comme `http://example.com`, mais mon environnement (Kali Linux en VM) **n’avait pas accès à Internet**. Le ping vers `example.com` échouait, et la résolution DNS ne fonctionnait pas dans le navigateur non plus.
+
+Alors j’ai opté pour une **approche réaliste** : tester en local.
+
+👉 Et c’est encore **plus intéressant**, car les vraies attaques SSRF ciblent souvent **les services internes** comme `127.0.0.1`, `localhost`, `admin panels`, `metadata servers`, etc.
+
+---
+
+## 🧱 Mise en place du fichier vulnérable `ssrf.php`
+
+```php
+<?php
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
+if (isset($_GET['url'])) {
+    $url = $_GET['url'];
+    $response = file_get_contents($url);
+    echo "<pre>$response</pre>";
+} else {
+    echo "Aucune URL fournie.";
+}
+?>
+```
+
+Ce fichier **accepte n’importe quelle URL** en paramètre, et demande au serveur d’aller la consulter. C’est là que réside la faille.
+
+---
+
+## 🧪 Tests réalisés
+
+### ✅ 1. Requête locale (test réussi)
+
+```
+http://localhost/web-lab/ssrf.php?url=http://127.0.0.1/web-lab/sqli.php?id=1
+```
+
+💥 Résultat : le serveur appelle **un autre script PHP interne** (`sqli.php`) et en affiche la réponse.
+
+---
+
+## 🛑 Erreur rencontrée (test externe échoué)
+
+```
+http://localhost/web-lab/ssrf.php?url=http://example.com
+```
+
+❌ Résultat : erreur `getaddrinfo failed`, car `example.com` n’est pas résolu dans mon environnement.
+
+---
+
+## 🚨 Risques liés à SSRF
+
+- Lecture de données internes (non accessibles directement)
+- Scan de ports internes (via des boucles)
+- Accès à des services d’administration ou d’API internes
+- Accès aux metadata cloud (ex: AWS `169.254.169.254`)
+
+---
+
+## 🛡️ Contre-mesures recommandées
+
+- Bloquer les IP privées (127.0.0.1, 169.254..., etc.)
+- Désactiver `file_get_contents()` pour les URLs (utiliser cURL avec validation)
+- Filtrage strict des URLs autorisées (whitelist)
+- DNS pinning pour éviter les contournements
+
+---
+
+## ✅ Ce que j’ai appris
+
+Même sans Internet, j’ai pu tester une **SSRF locale**, et c’est justement **le scénario le plus réaliste** dans un vrai contexte d’attaque.
+
+---
+
+## 🇬🇧 Part 2 – In English
+
+### 📖 The invisible attack: turning the server into your messenger
+
+Imagine you're outside a building. You can’t get in. But you find a mailman (the server) and say: “Can you deliver this message inside for me?” And he does.
+
+That’s what **SSRF** is: Server-Side Request Forgery. You can’t access something directly, but you trick the server into doing it **on your behalf**.
+
+---
+
+## 🔧 Why I tested it locally (127.0.0.1)
+
+I initially tried using `http://example.com`, but my Kali Linux VM didn’t have Internet access. Pinging `example.com` failed, and PHP couldn’t resolve the domain.
+
+So I went for a **more realistic approach**: local SSRF.
+
+👉 In real attacks, SSRF is most useful when targeting **internal services** like `localhost`, internal panels, or metadata endpoints.
+
+---
+
+## 🧱 Vulnerable file: `ssrf.php`
+
+```php
+<?php
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
+if (isset($_GET['url'])) {
+    $url = $_GET['url'];
+    $response = file_get_contents($url);
+    echo "<pre>$response</pre>";
+} else {
+    echo "No URL specified.";
+}
+?>
+```
+
+This file accepts **any URL** and asks the server to fetch it. That’s the vulnerability.
+
+---
+
+## 🧪 Tests performed
+
+### ✅ 1. Local SSRF test (success)
+
+```
+http://localhost/web-lab/ssrf.php?url=http://127.0.0.1/web-lab/sqli.php?id=1
+```
+
+💥 Result: the server calls another internal script and displays the output.
+
+---
+
+## 🛑 External request failed
+
+```
+http://localhost/web-lab/ssrf.php?url=http://example.com
+```
+
+❌ Result: `getaddrinfo failed`, because DNS resolution failed in my environment.
+
+---
+
+## 🚨 Risks
+
+- Internal data exposure
+- Internal port scanning via SSRF loops
+- Access to admin or service panels
+- Metadata theft (e.g. AWS `169.254.169.254`)
+
+---
+
+## 🛡️ Prevention
+
+- Block internal IP ranges (127.*, 169.*, etc.)
+- Don’t use `file_get_contents()` with URLs
+- Use cURL with strict filtering or a whitelist
+- Protect DNS resolution from manipulation
+
+---
+
+## ✅ What I learned
+
+Even without Internet, I was able to test a **realistic SSRF** scenario — the most relevant one from a security perspective.
+
+---
