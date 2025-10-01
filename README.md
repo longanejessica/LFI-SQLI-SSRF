@@ -1,6 +1,7 @@
 # 🕵️‍♀️ Labo Web Vulnérable – Étape 1 : LFI (Local File Inclusion)
 
 Bienvenue dans mon petit laboratoire de cybersécurité où j'explore des failles classiques du web de manière pédagogique et accessible.
+Vous trouvez mes labs en LFI, SQLi et SSRF.
 
 👉 [Lire en français](#-partie-1--en-français) | [Read in English](#-part-2--in-english)
 
